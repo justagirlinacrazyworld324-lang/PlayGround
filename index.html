@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#120d16" />
+<meta name="description" content="The Dollhouse — a 1 vs 4 asymmetric game of porcelain, music boxes, and the Maker who never sleeps." />
+<title>The Dollhouse · 1 vs 4</title>
+<link rel="stylesheet" href="./styles.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='22' r='14' fill='%23f3e6d2'/%3E%3Ccircle cx='27' cy='21' r='2.5' fill='%23241527'/%3E%3Ccircle cx='37' cy='21' r='2.5' fill='%23241527'/%3E%3Cpath d='M24 44h16l5 14H19z' fill='%23a32a3f'/%3E%3C/svg%3E" />
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="scene" aria-label="The Dollhouse game world"></canvas>
+<div class="fx fx-vignette"></div>
+<div class="fx fx-grain"></div>
+<div id="flash"></div>
+<div id="blood"></div>
+
+<!-- ── Loading ─────────────────────────────────────────────── -->
+<div id="loading" class="screen loading-screen hidden">
+  <div class="loader">
+    <div class="loader-doll"><i></i><b></b></div>
+    <p>Winding the music boxes…</p>
+    <div class="loader-bar"><i id="loadFill"></i></div>
+  </div>
+</div>
+
+<!-- ── Main menu ───────────────────────────────────────────── -->
+<main id="menu" class="screen menu-screen">
+  <div class="menu-inner">
+    <p class="eyebrow">A 1 vs 4 asymmetric nightmare</p>
+    <h1 class="logo">The Doll<span>house</span></h1>
+    <p class="tagline">Five music boxes. Four porcelain souls.<br />One Maker who never sleeps.</p>
+
+    <div class="role-grid" role="radiogroup" aria-label="Choose your role">
+      <button class="role-card selected" data-role="survivor" role="radio" aria-checked="true" aria-label="Play as a doll">
+        <span class="role-art" aria-hidden="true">
+          <svg viewBox="0 0 120 150">
+            <circle cx="60" cy="40" r="26" fill="currentColor" opacity=".92"/>
+            <circle cx="51" cy="37" r="3.4" fill="#241527"/><circle cx="69" cy="37" r="3.4" fill="#241527"/>
+            <path d="M53 50q7 5 14 0" stroke="#241527" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M34 28q26-20 52 0" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round" opacity=".55"/>
+            <path d="M42 72h36l9 42H33z" fill="#a32a3f"/>
+            <path d="M42 78q-16 14-13 32M78 78q16 14 13 32" stroke="currentColor" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <path d="M50 114v22M70 114v22" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+            <circle cx="60" cy="92" r="3" fill="#c9a05c"/>
+          </svg>
+        </span>
+        <span class="role-copy">
+          <span class="role-kicker">4 survivors · 1 is you</span>
+          <span class="role-name">The Doll</span>
+          <span class="role-desc">Wind the music boxes, mend your sisters, and slip out before the Maker finds you.</span>
+        </span>
+        <span class="role-tag">Survive</span>
+      </button>
+
+      <button class="role-card" data-role="hunter" role="radio" aria-checked="false" aria-label="Play as the Dollmaker">
+        <span class="role-art" aria-hidden="true">
+          <svg viewBox="0 0 120 150">
+            <path d="M36 18h48l-6 26H42z" fill="#1b111f"/>
+            <rect x="30" y="43" width="60" height="7" rx="3" fill="#c9a05c"/>
+            <circle cx="60" cy="58" r="20" fill="currentColor" opacity=".9"/>
+            <path d="M46 58h9M65 58h9" stroke="#241527" stroke-width="3" stroke-linecap="round"/>
+            <path d="M50 68q10 4 20 0" stroke="#a32a3f" stroke-width="2" fill="none"/>
+            <path d="M40 82h40l14 52H26z" fill="#241527"/>
+            <path d="M40 88q-18 18-12 40M80 88q18 18 12 40" stroke="currentColor" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <path d="M54 134v14M66 134v14" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+            <path d="M60 92v30" stroke="#c9a05c" stroke-width="2" stroke-dasharray="3 4"/>
+            <circle cx="60" cy="96" r="3" fill="#c9a05c"/>
+          </svg>
+        </span>
+        <span class="role-copy">
+          <span class="role-kicker">1 hunter · you are the house</span>
+          <span class="role-name">The Dollmaker</span>
+          <span class="role-desc">Listen for winding keys. Break the little things. Put them back on the shelf.</span>
+        </span>
+        <span class="role-tag">Hunt</span>
+      </button>
+    </div>
+
+    <div class="menu-row">
+      <div class="difficulty" role="group" aria-label="Difficulty">
+        <span class="difficulty-label">The house is</span>
+        <button data-diff="gentle">Gentle</button>
+        <button data-diff="classic" class="active">Cruel</button>
+        <button data-diff="cruel">Merciless</button>
+      </div>
+      <button id="how" class="ghost small" type="button">How to play</button>
+    </div>
+
+    <button id="start" class="primary" type="button" aria-label="Start game">
+      <span>Enter the dollhouse</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <p class="hint desktop-hint"><b>WASD</b> move · <b>drag</b> look · <b>E</b> interact · <b>Q</b> ability · <b>Shift</b> sprint</p>
+    <p class="hint touch-hint">Left stick move · drag the room to look · buttons to act</p>
+  </div>
+  <p class="credit">A tiny game about very small people in a very large house.</p>
+</main>
+
+<!-- ── HUD ─────────────────────────────────────────────────── -->
+<section id="hud" class="hud hidden" aria-live="polite">
+  <header class="hud-top">
+    <div class="role-badge">
+      <span class="role-glyph" id="roleGlyph" aria-hidden="true"></span>
+      <span class="role-text"><small id="roleLabel">You are a doll</small><strong id="roleObjective">Wind five music boxes</strong></span>
+    </div>
+    <div class="objective" id="objective">
+      <div class="pips" id="boxPips" aria-hidden="true"></div>
+      <span id="boxCount">0 / 5</span>
+    </div>
+    <div class="hud-right">
+      <button id="pauseBtn" class="pause-btn" type="button" aria-label="Pause game">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.6" y="5.5" width="3.6" height="13" rx="1.3" fill="currentColor"/><rect x="13.8" y="5.5" width="3.6" height="13" rx="1.3" fill="currentColor"/></svg>
+      </button>
+      <div class="timer"><span id="timer">07:00</span><small>till dawn</small></div>
+    </div>
+  </header>
+
+  <aside class="team" id="team" aria-label="Survivors"></aside>
+  <div class="map-wrap">
+    <canvas id="minimap" width="240" height="240" aria-label="Dollhouse map"></canvas>
+    <span class="map-label" id="mapLabel">Dollhouse</span>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="vitals">
+      <div class="hearts" id="hearts"></div>
+      <div class="stamina" id="stamina"><i id="staminaFill"></i></div>
+      <span class="vital-label" id="vitalLabel">Healthy</span>
+    </div>
+    <div class="prompt hidden" id="prompt">
+      <kbd>E</kbd>
+      <span id="promptText">Wind the music box</span>
+      <div class="progress"><i id="promptFill"></i></div>
+    </div>
+    <div class="ability">
+      <button id="abilityBtn" type="button">
+        <span class="ability-key" id="abilityKey">Q</span>
+        <span class="ability-copy"><strong id="abilityName">Doll's Grace</strong><small id="abilityState">Ready</small></span>
+        <span class="ability-cd" id="abilityCd"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+  <div class="sense hidden" id="sense"><span></span>The Maker is listening</div>
+  <div class="spectate hidden" id="spectate">You are a doll on a shelf · <b>space</b> to watch the others</div>
+</section>
+
+<!-- ── Touch controls ──────────────────────────────────────── -->
+<div id="touch" class="touch hidden">
+  <div id="stick" class="stick" aria-label="Move"><i id="stickKnob"></i></div>
+  <div class="touch-buttons">
+    <button id="tAttack" class="tbtn attack" type="button">Strike</button>
+    <button id="tInteract" class="tbtn interact" type="button">E</button>
+    <button id="tAbility" class="tbtn ability" type="button">Q</button>
+    <button id="tSprint" class="tbtn sprint" type="button">Run</button>
+  </div>
+</div>
+
+<!-- ── How to play ─────────────────────────────────────────── -->
+<section id="howto" class="screen sheet-screen hidden">
+  <div class="sheet">
+    <button class="sheet-close" id="howClose" aria-label="Close">×</button>
+    <p class="eyebrow">A very short manual</p>
+    <h2>How to play</h2>
+    <div class="sheet-cols">
+      <article>
+        <h3><span class="dot rose"></span>As a Doll</h3>
+        <ul>
+          <li>Wind all <b>five music boxes</b>. Hold <b>E</b> beside one. Each finished box rings through the house.</li>
+          <li>When all five sing, the <b>front door</b> unlocks. Hold <b>E</b> to open it and escape.</li>
+          <li>Mend injured sisters with <b>E</b>. Revive downed ones before the Maker returns.</li>
+          <li>Hide inside <b>toy chests</b> when you hear him close. Hold <b>E</b> to climb in or out.</li>
+          <li><b>Q</b> — Doll's Grace: a silent burst of speed. <b>Shift</b> — sprint, but he can hear it.</li>
+        </ul>
+      </article>
+      <article>
+        <h3><span class="dot gold"></span>As the Dollmaker</h3>
+        <ul>
+          <li>Two strikes break a doll. A third shatters her where she crawls.</li>
+          <li>A finished music box reveals itself to you. So does a sprinting doll.</li>
+          <li><b>Q</b> — Thread Sense: hear every doll through the walls for a few seconds.</li>
+          <li>Guard the <b>front door</b> when the fifth box begins to sing.</li>
+          <li>Left click / <b>Strike</b> to swing. A strike that misses is a long, loud second.</li>
+        </ul>
+      </article>
+    </div>
+    <p class="sheet-foot">The house is small. The night is not.</p>
+  </div>
+</section>
+
+<!-- ── Pause ───────────────────────────────────────────────── -->
+<section id="pause" class="screen sheet-screen hidden">
+  <div class="sheet narrow">
+    <p class="eyebrow">The music stops</p>
+    <h2>Paused</h2>
+    <div class="stack">
+      <button id="resume" class="primary" type="button">Return to the house</button>
+      <button id="restart" class="ghost" type="button">Start over</button>
+      <button id="quit" class="ghost danger" type="button">Leave the dollhouse</button>
+    </div>
+    <p class="sheet-foot">Esc to return</p>
+  </div>
+</section>
+
+<!-- ── End ─────────────────────────────────────────────────── -->
+<section id="end" class="screen sheet-screen hidden">
+  <div class="sheet end-sheet">
+    <p class="eyebrow" id="endEyebrow">The night is over</p>
+    <h2 id="endTitle">Escaped</h2>
+    <p class="end-line" id="endLine">You slipped between the floorboards before dawn.</p>
+    <div class="end-stats" id="endStats"></div>
+    <div class="stack row">
+      <button id="again" class="primary" type="button">Play again</button>
+      <button id="change" class="ghost" type="button">Change role</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
